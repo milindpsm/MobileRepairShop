@@ -8,16 +8,16 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "repairs_table")
 data class Repair(
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    val id: Long = 0, // Should always be val
 
-    val customerName: String,
-    val customerContact: String,
-    val alternateContact: String?, // The '?' makes this field nullable (optional)
-    val imeiNumber: String?, // Nullable
-    val imagePath: String?, // Nullable
-    val totalCost: Double,
-    val advanceTaken: Double,
+    var customerName: String,
+    var customerContact: String,
+    var alternateContact: String?,
+    var imeiNumber: String?,
+    var imagePath: String?,
+    var totalCost: Double, // Changed from val to var
+    var advanceTaken: Double, // Changed from val to var
     var status: String,
-    val dateAdded: Long, // Storing dates as Long (timestamp) is efficient
-    var dateCompleted: Long? // Nullable
+    val dateAdded: Long, // Should always be val
+    var dateCompleted: Long?
 )

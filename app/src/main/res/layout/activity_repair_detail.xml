@@ -34,7 +34,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:textAppearance="?attr/textAppearanceTitleLarge"
-            tools:text="Customer Name: Sunil Kumar" />
+            tools:text="Customer: Sunil Kumar" />
 
         <TextView
             android:id="@+id/detailCustomerContact"
@@ -74,26 +74,35 @@
             android:layout_marginVertical="16dp"
             android:background="?android:attr/listDivider" />
 
-        <TextView
-            android:id="@+id/detailTotalCost"
-            android:layout_width="wrap_content"
+        <!-- MODIFIED: Changed TextViews to EditTexts -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            tools:text="Total Cost: ₹5000" />
+            android:hint="@string/total_cost_hint">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/detailTotalCost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/detailAdvanceTaken"
-            android:layout_width="wrap_content"
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            tools:text="Advance: ₹1000" />
+            android:layout_marginTop="8dp"
+            android:hint="@string/advance_taken_hint">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/detailAdvanceTaken"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <TextView
             android:id="@+id/detailRemainingDue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             android:textStyle="bold"
             tools:text="Remaining Due: ₹4000" />
@@ -113,11 +122,11 @@
             android:minHeight="48dp" />
 
         <Button
-            android:id="@+id/buttonUpdateStatus"
+            android:id="@+id/buttonSaveChanges"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="@string/update_status" />
+            android:text="Save Changes" />
 
         <Button
             android:id="@+id/buttonSendMessage"

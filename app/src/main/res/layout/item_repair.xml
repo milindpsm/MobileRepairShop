@@ -35,6 +35,18 @@
             app:layout_constraintTop_toBottomOf="@id/textViewOrderId"
             tools:text="Sunil Kumar" />
 
+        <!-- NEW TextView to show how many days ago the repair was added -->
+        <TextView
+            android:id="@+id/textViewDaysAgo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textStyle="italic"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textViewCustomerName"
+            tools:text="5 days ago" />
+
         <com.google.android.material.chip.Chip
             android:id="@+id/chipStatus"
             android:layout_width="wrap_content"
