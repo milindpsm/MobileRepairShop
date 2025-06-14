@@ -13,15 +13,29 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileRepairShop"
         tools:targetApi="31">
+
+        <!-- Main Dashboard Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Add New Repair Activity -->
+        <activity
+            android:name=".AddRepairActivity"
+            android:label="@string/add_new_repair_title"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Repair Detail Activity -->
+        <activity
+            android:name=".RepairDetailActivity"
+            android:label="@string/repair_details_title"
+            android:parentActivityName=".MainActivity" />
+
     </application>
 
 </manifest>
