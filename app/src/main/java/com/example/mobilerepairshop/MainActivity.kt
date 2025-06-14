@@ -2,31 +2,46 @@ package com.example.mobilerepairshop
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.viewModels // <-- This is the important import that fixes the error
+import android.widget.PopupMenu
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.mobilerepairshop.data.model.Repair
 import com.example.mobilerepairshop.databinding.ActivityMainBinding
 import com.example.mobilerepairshop.ui.adapter.RepairAdapter
 import com.example.mobilerepairshop.ui.viewmodel.RepairViewModel
 import com.example.mobilerepairshop.ui.viewmodel.RepairViewModelFactory
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
-    // Lazily initialize the ViewModel using the factory
     private val repairViewModel: RepairViewModel by viewModels {
         RepairViewModelFactory((application as RepairShopApplication).repository)
     }
+    private lateinit var adapter: RepairAdapter
+    private var currentRepairListObserver: LiveData<List<Repair>>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
 
-        // Setup RecyclerView
-        val adapter = RepairAdapter { repair ->
-            // This is the click listener for each item in the list
+        setupRecyclerView()
+        setupClickListeners()
+        setupSearch()
+        observeData()
+
+        // Set the initial filter to "Last 7 Days"
+        updateDashboardForPeriod("Last 7 Days")
+    }
+
+    private fun setupRecyclerView() {
+        adapter = RepairAdapter { repair ->
             val intent = Intent(this, RepairDetailActivity::class.java).apply {
                 putExtra(RepairDetailActivity.REPAIR_ID, repair.id)
             }
@@ -34,17 +49,112 @@ class MainActivity : AppCompatActivity() {
         }
         binding.recyclerViewRepairs.adapter = adapter
         binding.recyclerViewRepairs.layoutManager = LinearLayoutManager(this)
+    }
 
-        // Observe the LiveData from the ViewModel
-        repairViewModel.allRepairs.observe(this) { repairs ->
-            // Update the cached copy of the repairs in the adapter.
-            repairs?.let { adapter.submitList(it) }
-        }
-
-        // Set click listener for the Floating Action Button
+    private fun setupClickListeners() {
         binding.fabAddRepair.setOnClickListener {
             val intent = Intent(this, AddRepairActivity::class.java)
             startActivity(intent)
+        }
+
+        binding.buttonDateFilter.setOnClickListener { view ->
+            showDateFilterMenu(view)
+        }
+    }
+
+    private fun setupSearch() {
+        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                // If search text is empty, show all repairs, otherwise show search results
+                if (newText.isNullOrEmpty()) {
+                    observeRepairList(repairViewModel.allRepairs)
+                } else {
+                    observeRepairList(repairViewModel.searchRepairs(newText))
+                }
+                return true
+            }
+        })
+    }
+
+    private fun observeData() {
+        // Initially observe all repairs
+        observeRepairList(repairViewModel.allRepairs)
+
+        // Observe the pending count separately as it's not date-ranged
+        repairViewModel.pendingCount.observe(this) { count ->
+            binding.statPendingCount.text = count?.toString() ?: "0"
+        }
+    }
+
+    private fun observeRepairList(repairsLiveData: LiveData<List<Repair>>) {
+        // Remove any previous observer to avoid multiple updates
+        currentRepairListObserver?.removeObservers(this)
+
+        // Add the new observer
+        currentRepairListObserver = repairsLiveData
+        currentRepairListObserver?.observe(this) { repairs ->
+            repairs?.let { adapter.submitList(it) }
+        }
+    }
+
+    private fun showDateFilterMenu(anchorView: android.view.View) {
+        val popupMenu = PopupMenu(this, anchorView)
+        popupMenu.menuInflater.inflate(R.menu.date_filter_menu, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener { menuItem ->
+            val period = menuItem.title.toString()
+            binding.buttonDateFilter.text = period
+            updateDashboardForPeriod(period)
+            true
+        }
+        popupMenu.show()
+    }
+
+    private fun updateDashboardForPeriod(period: String) {
+        val calendar = Calendar.getInstance()
+        val endDate = calendar.timeInMillis // End date is always now
+
+        when (period) {
+            "Today" -> {
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+            }
+            "Yesterday" -> {
+                calendar.add(Calendar.DAY_OF_YEAR, -1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                // We need to also set the end date for yesterday
+                val endOfYesterday = Calendar.getInstance()
+                endOfYesterday.add(Calendar.DAY_OF_YEAR, -1)
+                endOfYesterday.set(Calendar.HOUR_OF_DAY, 23)
+                endOfYesterday.set(Calendar.MINUTE, 59)
+                endOfYesterday.set(Calendar.SECOND, 59)
+                observeStats(calendar.timeInMillis, endOfYesterday.timeInMillis)
+                return // Exit early as we have a custom end date
+            }
+            "Last 7 Days" -> calendar.add(Calendar.DAY_OF_YEAR, -7)
+            "Last 30 Days" -> calendar.add(Calendar.DAY_OF_YEAR, -30)
+        }
+
+        val startDate = calendar.timeInMillis
+        observeStats(startDate, endDate)
+    }
+
+    private fun observeStats(startDate: Long, endDate: Long) {
+        repairViewModel.getStatsForPeriod(startDate, endDate).observe(this) { stats ->
+            binding.statInCount.text = stats?.inCount?.toString() ?: "0"
+            binding.statOutCount.text = stats?.outCount?.toString() ?: "0"
+
+            val totalRevenue = stats?.totalRevenue ?: 0.0
+            binding.statTotalRevenue.text = "REVENUE: ₹${"%.2f".format(totalRevenue)}"
+
+            val advanceReceived = stats?.advanceReceived ?: 0.0
+            binding.statAdvanceReceived.text = "ADVANCE: ₹${"%.2f".format(advanceReceived)}"
         }
     }
 }
