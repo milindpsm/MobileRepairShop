@@ -84,7 +84,6 @@ class RepairDetailActivity : AppCompatActivity() {
         }
     }
 
-    // NEW: Function to calculate and display remaining due
     private fun updateRemainingDue() {
         val totalCost = binding.detailTotalCost.text.toString().toDoubleOrNull() ?: 0.0
         val advanceTaken = binding.detailAdvanceTaken.text.toString().toDoubleOrNull() ?: 0.0
@@ -103,7 +102,6 @@ class RepairDetailActivity : AppCompatActivity() {
         }
     }
 
-    // MODIFIED: This function now saves all changes, not just status
     private fun saveChanges() {
         val selectedStatus = binding.spinnerStatus.selectedItem.toString()
         val totalCostText = binding.detailTotalCost.text.toString()
@@ -125,26 +123,40 @@ class RepairDetailActivity : AppCompatActivity() {
 
             repairViewModel.update(repair)
             Toast.makeText(this, "Changes saved successfully!", Toast.LENGTH_SHORT).show()
-            finish() // Go back to the dashboard after saving
+            finish()
         }
     }
 
+    // --- THIS FUNCTION IS NOW UPDATED ---
     private fun sendWhatsAppMessage() {
         currentRepair?.let { repair ->
-            val alternateContact = repair.alternateContact
-            if (alternateContact.isNullOrEmpty()) {
-                Toast.makeText(this, "No alternate contact number available to send message.", Toast.LENGTH_LONG).show()
+            // Use the primary contact number. If it's empty, show an error.
+            val contactNumber = repair.customerContact
+            if (contactNumber.isEmpty()) {
+                Toast.makeText(this, "No primary contact number available.", Toast.LENGTH_LONG).show()
                 return
             }
-            if(repair.status != getString(R.string.status_out)) {
+
+            // Only send the message if the status is "Out"
+            if (repair.status != getString(R.string.status_out)) {
                 Toast.makeText(this, "Can only send message for 'Out' status repairs.", Toast.LENGTH_LONG).show()
                 return
             }
 
+            // Calculate remaining cost
             val remainingDue = repair.totalCost - repair.advanceTaken
-            val message = "Hello! Your mobile repair is complete. The pending amount is ₹${"%.2f".format(remainingDue)}. Please collect your device from the shop. Thank you."
 
-            val formattedNumber = "+91$alternateContact"
+            // Construct the new, detailed message
+            val message = """
+                Hi ${repair.customerName},
+                Your mobile is repaired and ready to take home.
+                Total Repairing Cost: ₹${"%.2f".format(repair.totalCost)}
+                Remaining Cost: ₹${"%.2f".format(remainingDue)}
+                Please collect your device from the shop. Thank you!
+            """.trimIndent()
+
+            // Format number for WhatsApp URL (add country code +91)
+            val formattedNumber = "+91$contactNumber"
 
             val intent = Intent(Intent.ACTION_VIEW)
             intent.data = Uri.parse("https://api.whatsapp.com/send?phone=$formattedNumber&text=${Uri.encode(message)}")
@@ -156,6 +168,7 @@ class RepairDetailActivity : AppCompatActivity() {
             }
         }
     }
+    // --- END OF UPDATED FUNCTION ---
 
     private fun formatDate(timestamp: Long): String {
         val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
