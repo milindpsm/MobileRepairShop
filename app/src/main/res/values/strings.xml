@@ -1,3 +1,20 @@
 <resources>
-    <string name="app_name">MobileRepairShop</string>
+    <string name="app_name">Mobile Repair Shop</string>
+    <string name="dashboard_title">Repair Dashboard</string>
+    <string name="add_new_repair_title">Add New Repair</string>
+    <string name="repair_details_title">Repair Details</string>
+    <string name="capture_photo">Capture Photo</string>
+    <string name="customer_name_hint">Customer Name</string>
+    <string name="customer_contact_hint">Customer Contact Number</string>
+    <string name="alternate_contact_hint">Alternate Contact Number (Optional)</string>
+    <string name="imei_hint">IMEI Number (Optional)</string>
+    <string name="total_cost_hint">Total Cost</string>
+    <string name="advance_taken_hint">Advance Taken</string>
+    <string name="save_repair">Save Repair</string>
+    <string name="update_status">Update Status</string>
+    <string name="send_whatsapp_message">Send WhatsApp Message</string>
+    <string name="search_hint">Search by Name or Number...</string>
+    <string name="status_in">In</string>
+    <string name="status_pending">Pending</string>
+    <string name="status_out">Out</string>
 </resources>
