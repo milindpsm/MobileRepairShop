@@ -50,6 +50,9 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation(libs.androidx.lifecycle.viewmodel.android)
     implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation("com.google.code.gson:gson:2.10.1")
+    // Add this line with your other implementation dependencies
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
 
     // Room for local database

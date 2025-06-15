@@ -12,5 +12,11 @@
     <item
         android:id="@+id/filter_30_days"
         android:title="Last 30 Days" />
-    <!-- We will implement Custom Period later if needed -->
+    <!-- NEW OPTIONS ADDED BELOW -->
+    <item
+        android:id="@+id/filter_5_years"
+        android:title="Last 5 Years" />
+    <item
+        android:id="@+id/filter_custom"
+        android:title="Custom Range..." />
 </menu>

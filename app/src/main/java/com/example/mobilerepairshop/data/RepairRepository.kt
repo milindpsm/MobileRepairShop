@@ -1,5 +1,6 @@
 package com.example.mobilerepairshop.data
 
+import androidx.room.Transaction
 import com.example.mobilerepairshop.data.local.RepairDao
 import com.example.mobilerepairshop.data.model.DashboardStats
 import com.example.mobilerepairshop.data.model.Repair
@@ -44,5 +45,15 @@ class RepairRepository(private val repairDao: RepairDao) {
     }
     suspend fun delete(repair: Repair) {
         repairDao.delete(repair)
+    }
+
+    suspend fun getAllRepairsForBackup(): List<Repair> {
+        return repairDao.getAllRepairsForBackup()
+    }
+
+    @Transaction
+    suspend fun restoreFromBackup(repairs: List<Repair>) {
+        repairDao.clearAll()
+        repairs.forEach { repairDao.insert(it) }
     }
 }

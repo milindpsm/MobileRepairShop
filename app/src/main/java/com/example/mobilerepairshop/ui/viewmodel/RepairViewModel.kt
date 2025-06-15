@@ -51,7 +51,13 @@ class RepairViewModel(private val repository: RepairRepository) : ViewModel() {
     fun getStatsForPeriod(startDate: Long, endDate: Long): LiveData<DashboardStats?> {
         return repository.getStatsForPeriod(startDate, endDate).asLiveData()
     }
+    suspend fun getRepairsForBackup(): List<Repair> {
+        return repository.getAllRepairsForBackup()
+    }
 
+    fun restoreBackup(repairs: List<Repair>) = viewModelScope.launch {
+        repository.restoreFromBackup(repairs)
+    }
 }
 
 /**

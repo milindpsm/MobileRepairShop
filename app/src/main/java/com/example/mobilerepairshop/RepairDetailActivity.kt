@@ -99,7 +99,7 @@ class RepairDetailActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .setIcon(R.drawable.ic_baseline_delete_24)
+            .setIcon(R.drawable.baseline_delete_forever_24)
             .show()
     }
 

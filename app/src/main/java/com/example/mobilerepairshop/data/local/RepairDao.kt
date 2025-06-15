@@ -21,6 +21,12 @@ interface RepairDao {
     @Delete
     suspend fun delete(repair: Repair)
 
+    @Query("SELECT * FROM repairs_table ORDER BY dateAdded DESC")
+    suspend fun getAllRepairsForBackup(): List<Repair>
+
+    @Query("DELETE FROM repairs_table")
+    suspend fun clearAll()
+
     @Query("SELECT * FROM repairs_table WHERE id = :id")
     fun getRepairById(id: Long): Flow<Repair?>
 

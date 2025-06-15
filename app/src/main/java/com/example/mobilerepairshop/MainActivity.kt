@@ -1,22 +1,36 @@
 package com.example.mobilerepairshop
 
+import android.app.Activity
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mobilerepairshop.data.model.Repair
 import com.example.mobilerepairshop.databinding.ActivityMainBinding
 import com.example.mobilerepairshop.ui.adapter.RepairAdapter
 import com.example.mobilerepairshop.ui.viewmodel.RepairViewModel
 import com.example.mobilerepairshop.ui.viewmodel.RepairViewModelFactory
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.FileOutputStream
+import java.io.InputStreamReader
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,6 +40,48 @@ class MainActivity : AppCompatActivity() {
     }
     private lateinit var adapter: RepairAdapter
     private var currentRepairListObserver: LiveData<List<Repair>>? = null
+
+    // --- NEW: ActivityResultLaunchers for file operations ---
+    private val createFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.also { uri ->
+                lifecycleScope.launch {
+                    val repairs = repairViewModel.getRepairsForBackup()
+                    val gson = Gson()
+                    val jsonString = gson.toJson(repairs)
+                    try {
+                        contentResolver.openFileDescriptor(uri, "w")?.use {
+                            FileOutputStream(it.fileDescriptor).use { fos ->
+                                fos.write(jsonString.toByteArray())
+                            }
+                        }
+                        Toast.makeText(this@MainActivity, "Backup successful!", Toast.LENGTH_LONG).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(this@MainActivity, "Backup failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private val openFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.also { uri ->
+                try {
+                    val jsonString = contentResolver.openInputStream(uri)?.use {
+                        BufferedReader(InputStreamReader(it)).readText()
+                    }
+                    if (jsonString != null) {
+                        val type = object : TypeToken<List<Repair>>() {}.type
+                        val repairs: List<Repair> = Gson().fromJson(jsonString, type)
+                        showRestoreConfirmationDialog(repairs)
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Failed to read backup file: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,24 +93,32 @@ class MainActivity : AppCompatActivity() {
         setupClickListeners()
         setupSearch()
         observeData()
-
         updateDashboardForPeriod("Last 7 Days")
     }
 
-    // --- NEW: Inflate the menu with the refresh icon ---
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
     }
 
-    // --- NEW: Handle menu item clicks ---
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_backup -> {
+                createBackupFile()
+                true
+            }
+            R.id.action_restore -> {
+                openRestoreFile()
+                true
+            }
             R.id.action_refresh -> {
-                // When refresh is clicked, re-run the dashboard update
-                // using the currently selected period on the button.
                 val currentPeriod = binding.buttonDateFilter.text.toString()
-                updateDashboardForPeriod(currentPeriod)
+                if (currentPeriod.contains(" to ")) {
+                    updateDashboardForPeriod("Last 7 Days")
+                    binding.buttonDateFilter.text = "Last 7 Days"
+                } else {
+                    updateDashboardForPeriod(currentPeriod)
+                }
                 Toast.makeText(this, "Dashboard refreshed", Toast.LENGTH_SHORT).show()
                 true
             }
@@ -62,6 +126,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun createBackupFile() {
+        val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+        val fileName = "repair_backup_${sdf.format(Date())}.json"
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/json"
+            putExtra(Intent.EXTRA_TITLE, fileName)
+        }
+        createFileLauncher.launch(intent)
+    }
+
+    private fun openRestoreFile() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*" // Allow selecting any file type, we will validate by content
+        }
+        openFileLauncher.launch(intent)
+    }
+
+    private fun showRestoreConfirmationDialog(repairs: List<Repair>) {
+        AlertDialog.Builder(this)
+            .setTitle("Restore Backup")
+            .setMessage("This will overwrite all current data. Are you sure you want to proceed?")
+            .setPositiveButton("Restore") { _, _ ->
+                repairViewModel.restoreBackup(repairs)
+                Toast.makeText(this, "Restore successful!", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    // --- (The rest of your MainActivity file remains the same) ---
     private fun setupRecyclerView() {
         adapter = RepairAdapter { repair ->
             val intent = Intent(this, RepairDetailActivity::class.java).apply {
@@ -122,16 +218,55 @@ class MainActivity : AppCompatActivity() {
         popupMenu.menuInflater.inflate(R.menu.date_filter_menu, popupMenu.menu)
         popupMenu.setOnMenuItemClickListener { menuItem ->
             val period = menuItem.title.toString()
-            binding.buttonDateFilter.text = period
-            updateDashboardForPeriod(period)
+            if (period == "Custom Range...") {
+                showCustomDateRangePicker()
+            } else {
+                binding.buttonDateFilter.text = period
+                updateDashboardForPeriod(period)
+            }
             true
         }
         popupMenu.show()
     }
 
+    private fun showCustomDateRangePicker() {
+        val calendar = Calendar.getInstance()
+        var startDate: Long = 0
+
+        val startDatePicker = DatePickerDialog(this, { _, year, month, dayOfMonth ->
+            val startCalendar = Calendar.getInstance().apply { set(year, month, dayOfMonth, 0, 0, 0) }
+            startDate = startCalendar.timeInMillis
+
+            val endDatePicker = DatePickerDialog(this, { _, endYear, endMonth, endDayOfMonth ->
+                val endCalendar = Calendar.getInstance().apply { set(endYear, endMonth, endDayOfMonth, 23, 59, 59) }
+                val endDate = endCalendar.timeInMillis
+
+                if (endDate < startDate) {
+                    Toast.makeText(this, "End date cannot be before start date.", Toast.LENGTH_SHORT).show()
+                    return@DatePickerDialog
+                }
+
+                val sdf = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
+                val formattedStartDate = sdf.format(Date(startDate))
+                val formattedEndDate = sdf.format(Date(endDate))
+                binding.buttonDateFilter.text = "$formattedStartDate to $formattedEndDate"
+                observeStats(startDate, endDate)
+
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
+
+            endDatePicker.datePicker.minDate = startDate
+            endDatePicker.setTitle("Select End Date")
+            endDatePicker.show()
+
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
+
+        startDatePicker.setTitle("Select Start Date")
+        startDatePicker.show()
+    }
+
     private fun updateDashboardForPeriod(period: String) {
         val calendar = Calendar.getInstance()
-        val endDate = calendar.timeInMillis
+        var endDate = calendar.timeInMillis
 
         when (period) {
             "Today" -> {
@@ -140,43 +275,36 @@ class MainActivity : AppCompatActivity() {
             "Yesterday" -> {
                 calendar.add(Calendar.DAY_OF_YEAR, -1)
                 calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0)
-                val endOfYesterday = Calendar.getInstance()
-                endOfYesterday.add(Calendar.DAY_OF_YEAR, -1)
-                endOfYesterday.set(Calendar.HOUR_OF_DAY, 23); endOfYesterday.set(Calendar.MINUTE, 59); endOfYesterday.set(Calendar.SECOND, 59)
-                observeStats(calendar.timeInMillis, endOfYesterday.timeInMillis)
-                return
+                val endOfYesterday = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, -1)
+                    set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59)
+                }
+                endDate = endOfYesterday.timeInMillis
             }
             "Last 7 Days" -> calendar.add(Calendar.DAY_OF_YEAR, -7)
             "Last 30 Days" -> calendar.add(Calendar.DAY_OF_YEAR, -30)
+            "Last 5 Years" -> calendar.add(Calendar.YEAR, -5)
         }
 
         val startDate = calendar.timeInMillis
         observeStats(startDate, endDate)
     }
 
-    // This is just the observeStats function from inside your MainActivity.kt
-// Replace the existing observeStats function with this one for now.
     private fun observeStats(startDate: Long, endDate: Long) {
         repairViewModel.getStatsForPeriod(startDate, endDate).observe(this) { stats ->
             binding.statInCount.text = stats?.inCount?.toString() ?: "0"
             binding.statOutCount.text = stats?.outCount?.toString() ?: "0"
 
-            // --- THIS IS THE NEW LOGIC FOR CALCULATING AND DISPLAYING REVENUE ---
-
-            // Estimated Revenue = Total cost of all jobs created in the period.
             val estimatedRevenue = stats?.estimatedRevenue ?: 0.0
             binding.statEstimatedRevenue.text = "₹${"%.2f".format(estimatedRevenue)}"
 
-            // Actual Revenue = (Advance from jobs still In/Pending) + (Full cost from completed jobs)
             val advanceFromPending = stats?.advanceFromPending ?: 0.0
             val revenueFromOut = stats?.revenueFromOut ?: 0.0
             val actualRevenue = advanceFromPending + revenueFromOut
             binding.statActualRevenue.text = "₹${"%.2f".format(actualRevenue)}"
 
-            // Upcoming Revenue = Sum of all remaining dues for non-completed jobs.
             val upcomingRevenue = stats?.upcomingRevenue ?: 0.0
             binding.statUpcomingRevenue.text = "₹${"%.2f".format(upcomingRevenue)}"
         }
     }
-
 }
