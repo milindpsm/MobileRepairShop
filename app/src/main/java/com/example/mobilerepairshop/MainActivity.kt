@@ -161,11 +161,21 @@ class MainActivity : AppCompatActivity() {
             binding.statInCount.text = stats?.inCount?.toString() ?: "0"
             binding.statOutCount.text = stats?.outCount?.toString() ?: "0"
 
-            // --- TEMPORARY FIX to make the app compile ---
-            // We will add the correct logic in the next step.
-            binding.statEstimatedRevenue.text = "₹0.00"
-            binding.statActualRevenue.text = "₹0.00"
-            binding.statUpcomingRevenue.text = "₹0.00"
+            // --- THIS IS THE NEW LOGIC FOR CALCULATING AND DISPLAYING REVENUE ---
+
+            // Estimated Revenue = Total cost of all jobs created in the period.
+            val estimatedRevenue = stats?.estimatedRevenue ?: 0.0
+            binding.statEstimatedRevenue.text = "₹${"%.2f".format(estimatedRevenue)}"
+
+            // Actual Revenue = (Advance from jobs still In/Pending) + (Full cost from completed jobs)
+            val advanceFromPending = stats?.advanceFromPending ?: 0.0
+            val revenueFromOut = stats?.revenueFromOut ?: 0.0
+            val actualRevenue = advanceFromPending + revenueFromOut
+            binding.statActualRevenue.text = "₹${"%.2f".format(actualRevenue)}"
+
+            // Upcoming Revenue = Sum of all remaining dues for non-completed jobs.
+            val upcomingRevenue = stats?.upcomingRevenue ?: 0.0
+            binding.statUpcomingRevenue.text = "₹${"%.2f".format(upcomingRevenue)}"
         }
     }
 

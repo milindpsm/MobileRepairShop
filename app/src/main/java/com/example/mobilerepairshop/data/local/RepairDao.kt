@@ -1,7 +1,7 @@
 package com.example.mobilerepairshop.data.local
 
 import androidx.room.Dao
-import androidx.room.Delete // <-- This is the missing import you found!
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -30,6 +30,7 @@ interface RepairDao {
     @Query("SELECT * FROM repairs_table WHERE customerName LIKE '%' || :searchQuery || '%' OR customerContact LIKE '%' || :searchQuery || '%' ORDER BY dateAdded DESC")
     fun searchDatabase(searchQuery: String): Flow<List<Repair>>
 
+    // --- THIS IS THE NEW, MORE POWERFUL QUERY ---
     @Query("""
         SELECT
             (SELECT COUNT(*) FROM repairs_table WHERE dateAdded BETWEEN :startDate AND :endDate) as inCount,
@@ -40,6 +41,7 @@ interface RepairDao {
             (SELECT SUM(totalCost - advanceTaken) FROM repairs_table WHERE status != 'Out' AND dateAdded BETWEEN :startDate AND :endDate) as upcomingRevenue
     """)
     fun getStats(startDate: Long, endDate: Long): Flow<DashboardStats?>
+    // --- END OF NEW QUERY ---
 
     @Query("SELECT COUNT(*) FROM repairs_table WHERE status = 'Pending'")
     fun getPendingCount(): Flow<Int>
