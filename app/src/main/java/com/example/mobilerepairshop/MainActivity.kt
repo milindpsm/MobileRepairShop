@@ -154,21 +154,19 @@ class MainActivity : AppCompatActivity() {
         observeStats(startDate, endDate)
     }
 
+    // This is just the observeStats function from inside your MainActivity.kt
+// Replace the existing observeStats function with this one for now.
     private fun observeStats(startDate: Long, endDate: Long) {
         repairViewModel.getStatsForPeriod(startDate, endDate).observe(this) { stats ->
             binding.statInCount.text = stats?.inCount?.toString() ?: "0"
             binding.statOutCount.text = stats?.outCount?.toString() ?: "0"
 
-            val estimatedRevenue = stats?.estimatedRevenue ?: 0.0
-            binding.statEstimatedRevenue.text = "₹${"%.2f".format(estimatedRevenue)}"
-
-            val advanceFromPending = stats?.advanceFromPending ?: 0.0
-            val revenueFromOut = stats?.revenueFromOut ?: 0.0
-            val actualRevenue = advanceFromPending + revenueFromOut
-            binding.statActualRevenue.text = "₹${"%.2f".format(actualRevenue)}"
-
-            val upcomingRevenue = stats?.upcomingRevenue ?: 0.0
-            binding.statUpcomingRevenue.text = "₹${"%.2f".format(upcomingRevenue)}"
+            // --- TEMPORARY FIX to make the app compile ---
+            // We will add the correct logic in the next step.
+            binding.statEstimatedRevenue.text = "₹0.00"
+            binding.statActualRevenue.text = "₹0.00"
+            binding.statUpcomingRevenue.text = "₹0.00"
         }
     }
+
 }

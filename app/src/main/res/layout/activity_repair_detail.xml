@@ -7,7 +7,6 @@
     android:orientation="vertical"
     tools:context=".RepairDetailActivity">
 
-    <!-- NEW: Added Toolbar -->
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -36,7 +35,6 @@
                 android:textAppearance="?attr/textAppearanceHeadlineSmall"
                 tools:text="Repair ID: 2024-001" />
 
-            <!-- The rest of your layout is exactly the same... -->
             <ImageView
                 android:id="@+id/detailImageViewPhone"
                 android:layout_width="250dp"
@@ -85,6 +83,22 @@
                 android:layout_marginTop="4dp"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 tools:text="Date Added: 15 June 2025" />
+
+            <!-- NEW: Editable Description Field -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="Repair Description">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/detailDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:minLines="3"
+                    android:gravity="top"/>
+            </com.google.android.material.textfield.TextInputLayout>
 
             <View
                 android:layout_width="match_parent"

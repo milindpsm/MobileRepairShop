@@ -37,11 +37,7 @@ class RepairDetailActivity : AppCompatActivity() {
         binding = ActivityRepairDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // --- NEW: Tell the activity to use our new toolbar ---
         setSupportActionBar(binding.toolbar)
-        // --- END OF NEW LINE ---
-
-        // Add a back arrow to the toolbar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val repairId = intent.getLongExtra(REPAIR_ID, -1L)
@@ -72,20 +68,17 @@ class RepairDetailActivity : AppCompatActivity() {
         }
     }
 
-    // --- NEW: Inflate the menu with the delete icon ---
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.detail_menu, menu)
         return true
     }
 
-    // --- NEW: Handle menu item clicks ---
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_delete -> {
                 showDeleteConfirmationDialog()
                 true
             }
-            // Handle the back arrow click
             android.R.id.home -> {
                 onBackPressedDispatcher.onBackPressed()
                 true
@@ -94,17 +87,15 @@ class RepairDetailActivity : AppCompatActivity() {
         }
     }
 
-    // --- NEW: Function to show confirmation dialog ---
     private fun showDeleteConfirmationDialog() {
         AlertDialog.Builder(this)
             .setTitle("Delete Repair")
             .setMessage("Are you sure you want to delete this entry? This action cannot be undone.")
             .setPositiveButton("Delete") { _, _ ->
-                // User clicked the "Delete" button, so delete the repair.
                 currentRepair?.let {
                     repairViewModel.delete(it)
                     Toast.makeText(this, "Repair deleted successfully", Toast.LENGTH_SHORT).show()
-                    finish() // Close the activity and go back to the dashboard
+                    finish()
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -112,8 +103,8 @@ class RepairDetailActivity : AppCompatActivity() {
             .show()
     }
 
-
     private fun bindDataToViews(repair: Repair) {
+        // ... (other data binding is the same)
         binding.detailTitle.text = getString(R.string.detail_title_format, repair.id)
         binding.detailCustomerName.text = getString(R.string.customer_name_format, repair.customerName)
         binding.detailCustomerContact.text = getString(R.string.contact_format, repair.customerContact)
@@ -121,6 +112,9 @@ class RepairDetailActivity : AppCompatActivity() {
         binding.detailAlternateContact.text = getString(R.string.alt_contact_format, repair.alternateContact ?: notApplicable)
         binding.detailImei.text = getString(R.string.imei_format, repair.imeiNumber ?: notApplicable)
         binding.detailDateAdded.text = getString(R.string.date_added_format, formatDate(repair.dateAdded))
+
+        // NEW: Set the description text
+        binding.detailDescription.setText(repair.description)
 
         if (repair.imagePath != null) {
             Glide.with(this)
@@ -131,9 +125,13 @@ class RepairDetailActivity : AppCompatActivity() {
         binding.detailTotalCost.setText(repair.totalCost.toString())
         binding.detailAdvanceTaken.setText(repair.advanceTaken.toString())
         validateAndCalculate()
-    }
 
-    // ... (The rest of the file remains the same)
+        val statusArray = resources.getStringArray(R.array.status_array)
+        val statusPosition = statusArray.indexOf(repair.status)
+        if (statusPosition >= 0) {
+            binding.spinnerStatus.setSelection(statusPosition)
+        }
+    }
 
     private fun setupTextChangedListeners() {
         val textWatcher = object : TextWatcher {
@@ -185,9 +183,11 @@ class RepairDetailActivity : AppCompatActivity() {
         val selectedStatus = binding.spinnerStatus.selectedItem.toString()
         val totalCostText = binding.detailTotalCost.text.toString()
         val advanceTakenText = binding.detailAdvanceTaken.text.toString()
+        // NEW: Get description from the EditText
+        val description = binding.detailDescription.text.toString().trim()
 
-        if (totalCostText.isEmpty() || advanceTakenText.isEmpty()) {
-            Toast.makeText(this, "Cost and Advance fields cannot be empty", Toast.LENGTH_SHORT).show()
+        if (totalCostText.isEmpty() || advanceTakenText.isEmpty() || description.isEmpty()) {
+            Toast.makeText(this, "Description, Cost and Advance fields cannot be empty", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -195,6 +195,8 @@ class RepairDetailActivity : AppCompatActivity() {
             repair.status = selectedStatus
             repair.totalCost = totalCostText.toDouble()
             repair.advanceTaken = advanceTakenText.toDouble()
+            // NEW: Set the updated description
+            repair.description = description
 
             if (selectedStatus == getString(R.string.status_out) && repair.dateCompleted == null) {
                 repair.dateCompleted = System.currentTimeMillis()
@@ -214,7 +216,7 @@ class RepairDetailActivity : AppCompatActivity() {
                 return
             }
 
-            if (repair.status != getString(R.string.status_out)) {
+            if(repair.status != getString(R.string.status_out)) {
                 Toast.makeText(this, "Can only send message for 'Out' status repairs.", Toast.LENGTH_LONG).show()
                 return
             }
@@ -242,7 +244,7 @@ class RepairDetailActivity : AppCompatActivity() {
     }
 
     private fun formatDate(timestamp: Long): String {
-        val sdf = SimpleDateFormat("dd MMMM yyyy, hh:mm a", Locale.getDefault())
+        val sdf = SimpleDateFormat("dd MMMM hh:mm a", Locale.getDefault())
         return sdf.format(Date(timestamp))
     }
 

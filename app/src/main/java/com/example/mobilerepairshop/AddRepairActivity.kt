@@ -28,8 +28,6 @@ class AddRepairActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddRepairBinding
     private var latestTmpUri: Uri? = null
     private var latestImageSavedPath: String? = null
-
-    // NEW: Variable to hold the selected date's timestamp
     private var selectedDateTimestamp = System.currentTimeMillis()
 
     private val repairViewModel: RepairViewModel by viewModels {
@@ -60,7 +58,6 @@ class AddRepairActivity : AppCompatActivity() {
         binding = ActivityAddRepairBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // NEW: Set initial date text and setup date picker button
         updateDateText()
         binding.buttonSelectDate.setOnClickListener {
             showDatePicker()
@@ -75,7 +72,6 @@ class AddRepairActivity : AppCompatActivity() {
         }
     }
 
-    // NEW: Function to show the DatePickerDialog
     private fun showDatePicker() {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -90,7 +86,6 @@ class AddRepairActivity : AppCompatActivity() {
         }, year, month, day).show()
     }
 
-    // NEW: Function to format and display the selected date
     private fun updateDateText() {
         val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
         binding.textSelectedDate.text = "Date: ${sdf.format(Date(selectedDateTimestamp))}"
@@ -99,14 +94,16 @@ class AddRepairActivity : AppCompatActivity() {
     private fun saveRepair() {
         val customerName = binding.editTextCustomerName.text.toString().trim()
         val customerContact = binding.editTextCustomerContact.text.toString().trim()
-        // ... (rest of the data collection is the same)
         val alternateContact = binding.editTextAlternateContact.text.toString().trim()
         val imei = binding.editTextImei.text.toString().trim()
+        // NEW: Get text from description field
+        val description = binding.editTextDescription.text.toString().trim()
         val totalCostText = binding.editTextTotalCost.text.toString().trim()
         val advanceTakenText = binding.editTextAdvanceTaken.text.toString().trim()
 
-        if (customerName.isEmpty() || customerContact.isEmpty() || totalCostText.isEmpty()) {
-            Toast.makeText(this, "Customer Name, Contact, and Total Cost are required.", Toast.LENGTH_SHORT).show()
+        // Updated validation to include description
+        if (customerName.isEmpty() || customerContact.isEmpty() || description.isEmpty() || totalCostText.isEmpty()) {
+            Toast.makeText(this, "Name, Contact, Description, and Cost are required.", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -118,11 +115,12 @@ class AddRepairActivity : AppCompatActivity() {
             customerContact = customerContact,
             alternateContact = alternateContact.ifEmpty { null },
             imeiNumber = imei.ifEmpty { null },
+            // NEW: Add description to the object
+            description = description,
             imagePath = latestImageSavedPath,
             totalCost = totalCost,
             advanceTaken = advanceTaken,
             status = getString(R.string.status_in),
-            // MODIFIED: Use the selected timestamp instead of the current time
             dateAdded = selectedDateTimestamp,
             dateCompleted = null
         )
@@ -132,7 +130,6 @@ class AddRepairActivity : AppCompatActivity() {
         finish()
     }
 
-    // --- (The camera functions below this line remain unchanged) ---
     private fun checkCameraPermissionAndLaunch() {
         when {
             ContextCompat.checkSelfPermission(

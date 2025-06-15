@@ -34,6 +34,7 @@
     <string name="actual_revenue">Actual Revenue</string>
     <string name="upcoming_revenue">Upcoming Revenue</string>
 
+
     <string-array name="status_array">
         <item>@string/status_in</item>
         <item>@string/status_pending</item>
