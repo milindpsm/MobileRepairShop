@@ -3,10 +3,13 @@ package com.example.mobilerepairshop
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import com.bumptech.glide.Glide
 import com.example.mobilerepairshop.data.model.Repair
 import com.example.mobilerepairshop.databinding.ActivityRepairDetailBinding
@@ -24,6 +27,8 @@ class RepairDetailActivity : AppCompatActivity() {
     private val repairViewModel: RepairViewModel by viewModels {
         RepairViewModelFactory((application as RepairShopApplication).repository)
     }
+    // Flag to prevent loops in TextWatcher
+    private var isUpdating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,10 +43,10 @@ class RepairDetailActivity : AppCompatActivity() {
         }
 
         setupStatusSpinner()
+        setupTextChangedListeners()
 
         repairViewModel.getRepairById(repairId).observe(this) { repair ->
             repair?.let {
-                // Only bind data the first time to avoid overwriting user edits
                 if (currentRepair == null) {
                     currentRepair = it
                     bindDataToViews(it)
@@ -59,12 +64,15 @@ class RepairDetailActivity : AppCompatActivity() {
     }
 
     private fun bindDataToViews(repair: Repair) {
-        binding.detailTitle.text = "Repair ID: ${repair.id}"
-        binding.detailCustomerName.text = "Customer: ${repair.customerName}"
-        binding.detailCustomerContact.text = "Contact: ${repair.customerContact}"
-        binding.detailAlternateContact.text = "Alt Contact: ${repair.alternateContact ?: "N/A"}"
-        binding.detailImei.text = "IMEI: ${repair.imeiNumber ?: "N/A"}"
-        binding.detailDateAdded.text = "Date Added: ${formatDate(repair.dateAdded)}"
+        binding.detailTitle.text = getString(R.string.detail_title_format, repair.id)
+        binding.detailCustomerName.text = getString(R.string.customer_name_format, repair.customerName)
+        binding.detailCustomerContact.text = getString(R.string.contact_format, repair.customerContact)
+
+        // FIX: Use default value if optional fields are null
+        val notApplicable = getString(R.string.not_applicable)
+        binding.detailAlternateContact.text = getString(R.string.alt_contact_format, repair.alternateContact ?: notApplicable)
+        binding.detailImei.text = getString(R.string.imei_format, repair.imeiNumber ?: notApplicable)
+        binding.detailDateAdded.text = getString(R.string.date_added_format, formatDate(repair.dateAdded))
 
         if (repair.imagePath != null) {
             Glide.with(this)
@@ -72,10 +80,9 @@ class RepairDetailActivity : AppCompatActivity() {
                 .into(binding.detailImageViewPhone)
         }
 
-        // Set the text in the EditTexts
         binding.detailTotalCost.setText(repair.totalCost.toString())
         binding.detailAdvanceTaken.setText(repair.advanceTaken.toString())
-        updateRemainingDue()
+        validateAndCalculate() // Initial calculation
 
         val statusArray = resources.getStringArray(R.array.status_array)
         val statusPosition = statusArray.indexOf(repair.status)
@@ -84,11 +91,40 @@ class RepairDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateRemainingDue() {
+    private fun setupTextChangedListeners() {
+        val textWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (!isUpdating) {
+                    validateAndCalculate()
+                }
+            }
+        }
+        binding.detailTotalCost.addTextChangedListener(textWatcher)
+        binding.detailAdvanceTaken.addTextChangedListener(textWatcher)
+    }
+
+    private fun validateAndCalculate() {
+        isUpdating = true
+
         val totalCost = binding.detailTotalCost.text.toString().toDoubleOrNull() ?: 0.0
-        val advanceTaken = binding.detailAdvanceTaken.text.toString().toDoubleOrNull() ?: 0.0
+        var advanceTaken = binding.detailAdvanceTaken.text.toString().toDoubleOrNull() ?: 0.0
+
+        if (advanceTaken > totalCost) {
+            advanceTaken = totalCost
+            binding.layoutAdvanceTaken.error = getString(R.string.advance_error)
+            binding.detailAdvanceTaken.setText(advanceTaken.toString())
+            // FIX: Safely set the cursor position
+            binding.detailAdvanceTaken.text?.let { binding.detailAdvanceTaken.setSelection(it.length) }
+        } else {
+            binding.layoutAdvanceTaken.error = null
+        }
+
         val remainingDue = totalCost - advanceTaken
-        binding.detailRemainingDue.text = "Remaining Due: ₹${"%.2f".format(remainingDue)}"
+        binding.detailRemainingDue.text = getString(R.string.remaining_due_format, remainingDue)
+
+        isUpdating = false
     }
 
     private fun setupStatusSpinner() {
@@ -127,26 +163,20 @@ class RepairDetailActivity : AppCompatActivity() {
         }
     }
 
-    // --- THIS FUNCTION IS NOW UPDATED ---
     private fun sendWhatsAppMessage() {
         currentRepair?.let { repair ->
-            // Use the primary contact number. If it's empty, show an error.
             val contactNumber = repair.customerContact
             if (contactNumber.isEmpty()) {
                 Toast.makeText(this, "No primary contact number available.", Toast.LENGTH_LONG).show()
                 return
             }
 
-            // Only send the message if the status is "Out"
-            if (repair.status != getString(R.string.status_out)) {
+            if(repair.status != getString(R.string.status_out)) {
                 Toast.makeText(this, "Can only send message for 'Out' status repairs.", Toast.LENGTH_LONG).show()
                 return
             }
 
-            // Calculate remaining cost
             val remainingDue = repair.totalCost - repair.advanceTaken
-
-            // Construct the new, detailed message
             val message = """
                 Hi ${repair.customerName},
                 Your mobile is repaired and ready to take home.
@@ -155,11 +185,10 @@ class RepairDetailActivity : AppCompatActivity() {
                 Please collect your device from the shop. Thank you!
             """.trimIndent()
 
-            // Format number for WhatsApp URL (add country code +91)
             val formattedNumber = "+91$contactNumber"
 
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse("https://api.whatsapp.com/send?phone=$formattedNumber&text=${Uri.encode(message)}")
+            val url = "https://api.whatsapp.com/send?phone=$formattedNumber&text=${Uri.encode(message)}"
+            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
 
             try {
                 startActivity(intent)
@@ -168,10 +197,9 @@ class RepairDetailActivity : AppCompatActivity() {
             }
         }
     }
-    // --- END OF UPDATED FUNCTION ---
 
     private fun formatDate(timestamp: Long): String {
-        val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+        val sdf = SimpleDateFormat("dd MMMM yyyy, hh:mm a", Locale.getDefault())
         return sdf.format(Date(timestamp))
     }
 

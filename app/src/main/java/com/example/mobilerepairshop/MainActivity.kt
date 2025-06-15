@@ -14,7 +14,6 @@ import com.example.mobilerepairshop.ui.adapter.RepairAdapter
 import com.example.mobilerepairshop.ui.viewmodel.RepairViewModel
 import com.example.mobilerepairshop.ui.viewmodel.RepairViewModelFactory
 import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -36,7 +35,6 @@ class MainActivity : AppCompatActivity() {
         setupSearch()
         observeData()
 
-        // Set the initial filter to "Last 7 Days"
         updateDashboardForPeriod("Last 7 Days")
     }
 
@@ -69,7 +67,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                // If search text is empty, show all repairs, otherwise show search results
                 if (newText.isNullOrEmpty()) {
                     observeRepairList(repairViewModel.allRepairs)
                 } else {
@@ -81,20 +78,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeData() {
-        // Initially observe all repairs
         observeRepairList(repairViewModel.allRepairs)
 
-        // Observe the pending count separately as it's not date-ranged
         repairViewModel.pendingCount.observe(this) { count ->
             binding.statPendingCount.text = count?.toString() ?: "0"
         }
     }
 
     private fun observeRepairList(repairsLiveData: LiveData<List<Repair>>) {
-        // Remove any previous observer to avoid multiple updates
         currentRepairListObserver?.removeObservers(this)
 
-        // Add the new observer
         currentRepairListObserver = repairsLiveData
         currentRepairListObserver?.observe(this) { repairs ->
             repairs?.let { adapter.submitList(it) }
@@ -115,7 +108,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateDashboardForPeriod(period: String) {
         val calendar = Calendar.getInstance()
-        val endDate = calendar.timeInMillis // End date is always now
+        val endDate = calendar.timeInMillis
 
         when (period) {
             "Today" -> {
@@ -128,14 +121,13 @@ class MainActivity : AppCompatActivity() {
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
-                // We need to also set the end date for yesterday
                 val endOfYesterday = Calendar.getInstance()
                 endOfYesterday.add(Calendar.DAY_OF_YEAR, -1)
                 endOfYesterday.set(Calendar.HOUR_OF_DAY, 23)
                 endOfYesterday.set(Calendar.MINUTE, 59)
                 endOfYesterday.set(Calendar.SECOND, 59)
                 observeStats(calendar.timeInMillis, endOfYesterday.timeInMillis)
-                return // Exit early as we have a custom end date
+                return
             }
             "Last 7 Days" -> calendar.add(Calendar.DAY_OF_YEAR, -7)
             "Last 30 Days" -> calendar.add(Calendar.DAY_OF_YEAR, -30)
@@ -145,16 +137,27 @@ class MainActivity : AppCompatActivity() {
         observeStats(startDate, endDate)
     }
 
+    // This is just the observeStats function from inside your MainActivity.kt
+// Replace the existing observeStats function with this one.
     private fun observeStats(startDate: Long, endDate: Long) {
         repairViewModel.getStatsForPeriod(startDate, endDate).observe(this) { stats ->
             binding.statInCount.text = stats?.inCount?.toString() ?: "0"
             binding.statOutCount.text = stats?.outCount?.toString() ?: "0"
 
-            val totalRevenue = stats?.totalRevenue ?: 0.0
-            binding.statTotalRevenue.text = "REVENUE: ₹${"%.2f".format(totalRevenue)}"
+            // --- THIS IS THE NEW LOGIC FOR CALCULATING AND DISPLAYING REVENUE ---
+            val estimatedRevenue = stats?.estimatedRevenue ?: 0.0
+            binding.statEstimatedRevenue.text = "₹${"%.2f".format(estimatedRevenue)}"
 
-            val advanceReceived = stats?.advanceReceived ?: 0.0
-            binding.statAdvanceReceived.text = "ADVANCE: ₹${"%.2f".format(advanceReceived)}"
+            // Actual Revenue = (Advance from pending jobs) + (Full cost from completed jobs)
+            val advanceFromPending = stats?.advanceFromPending ?: 0.0
+            val revenueFromOut = stats?.revenueFromOut ?: 0.0
+            val actualRevenue = advanceFromPending + revenueFromOut
+            binding.statActualRevenue.text = "₹${"%.2f".format(actualRevenue)}"
+
+            // Upcoming Revenue is the sum of all remaining dues for non-completed jobs
+            val upcomingRevenue = stats?.upcomingRevenue ?: 0.0
+            binding.statUpcomingRevenue.text = "₹${"%.2f".format(upcomingRevenue)}"
         }
     }
+
 }

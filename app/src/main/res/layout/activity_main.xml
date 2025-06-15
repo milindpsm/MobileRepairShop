@@ -58,6 +58,7 @@
                         android:columnCount="3"
                         android:rowCount="2">
 
+                        <!-- Job Status Counts -->
                         <TextView
                             android:layout_columnWeight="1"
                             android:layout_gravity="center"
@@ -101,36 +102,82 @@
                             android:text="0"
                             android:textAppearance="?attr/textAppearanceDisplaySmall"
                             android:textColor="@android:color/holo_orange_dark" />
-
                     </GridLayout>
 
-                    <TextView
-                        android:id="@+id/statTotalRevenue"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:gravity="center"
-                        android:text="REVENUE: ₹0"
-                        android:textAppearance="?attr/textAppearanceTitleMedium" />
-
-                    <TextView
-                        android:id="@+id/statAdvanceReceived"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center"
-                        android:text="ADVANCE: ₹0"
-                        android:textAppearance="?attr/textAppearanceTitleMedium" />
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Revenue Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/estimated_revenue"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+                    <TextView
+                        android:id="@+id/statEstimatedRevenue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="₹0.00"
+                        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                        android:textColor="?attr/colorPrimary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/actual_revenue"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+                    <TextView
+                        android:id="@+id/statActualRevenue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="₹0.00"
+                        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                        android:textColor="@android:color/holo_green_dark" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/upcoming_revenue"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+                    <TextView
+                        android:id="@+id/statUpcomingRevenue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="₹0.00"
+                        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                        android:textColor="@android:color/holo_orange_dark" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
 
             <!-- Search and List Section -->
             <androidx.appcompat.widget.SearchView
                 android:id="@+id/searchView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="8dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:iconifiedByDefault="false"
                 app:queryHint="@string/search_hint" />
 

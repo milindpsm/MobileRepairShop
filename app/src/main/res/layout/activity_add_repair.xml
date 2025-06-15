@@ -18,6 +18,32 @@
             android:text="@string/add_new_repair_title"
             android:textAppearance="?attr/textAppearanceHeadlineSmall" />
 
+        <!-- NEW: Date Selection Views -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/textSelectedDate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                tools:text="Date: 15 June 2025" />
+
+            <Button
+                android:id="@+id/buttonSelectDate"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Change Date" />
+        </LinearLayout>
+        <!-- END OF NEW VIEWS -->
+
+
         <ImageView
             android:id="@+id/imageViewPhone"
             android:layout_width="150dp"
@@ -48,6 +74,7 @@
                 android:inputType="textPersonName" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- ... (rest of the EditTexts are the same) ... -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

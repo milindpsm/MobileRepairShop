@@ -18,6 +18,22 @@
     <string name="status_pending">Pending</string>
     <string name="status_out">Out</string>
 
+    <!-- NEW: Formatted Strings for Detail Screen -->
+    <string name="detail_title_format">Repair ID: %1$d</string>
+    <string name="customer_name_format">Customer: %1$s</string>
+    <string name="contact_format">Contact: %1$s</string>
+    <string name="alt_contact_format">Alt Contact: %1$s</string>
+    <string name="imei_format">IMEI: %1$s</string>
+    <string name="date_added_format">Date Added: %1$s</string>
+    <string name="total_cost_format">Total Cost: ₹%.2f</string>
+    <string name="advance_taken_format">Advance: ₹%.2f</string>
+    <string name="remaining_due_format">Remaining Due: ₹%.2f</string>
+    <string name="not_applicable">N/A</string>
+    <string name="advance_error">Advance cannot exceed Total Cost</string>
+    <string name="estimated_revenue">Estimated Revenue</string>
+    <string name="actual_revenue">Actual Revenue</string>
+    <string name="upcoming_revenue">Upcoming Revenue</string>
+
     <string-array name="status_array">
         <item>@string/status_in</item>
         <item>@string/status_pending</item>

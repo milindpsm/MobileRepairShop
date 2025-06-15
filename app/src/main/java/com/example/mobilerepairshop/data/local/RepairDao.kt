@@ -23,18 +23,21 @@ interface RepairDao {
     @Query("SELECT * FROM repairs_table ORDER BY dateAdded DESC")
     fun getAllRepairsOrderedByDate(): Flow<List<Repair>>
 
-    // The '||' operator concatenates strings for the LIKE query
     @Query("SELECT * FROM repairs_table WHERE customerName LIKE '%' || :searchQuery || '%' OR customerContact LIKE '%' || :searchQuery || '%' ORDER BY dateAdded DESC")
     fun searchDatabase(searchQuery: String): Flow<List<Repair>>
 
+    // --- THIS IS THE NEW, MORE POWERFUL QUERY ---
     @Query("""
         SELECT
             (SELECT COUNT(*) FROM repairs_table WHERE dateAdded BETWEEN :startDate AND :endDate) as inCount,
             (SELECT COUNT(*) FROM repairs_table WHERE status = 'Out' AND dateCompleted BETWEEN :startDate AND :endDate) as outCount,
-            (SELECT SUM(totalCost) FROM repairs_table WHERE status = 'Out' AND dateCompleted BETWEEN :startDate AND :endDate) as totalRevenue,
-            (SELECT SUM(advanceTaken) FROM repairs_table WHERE dateAdded BETWEEN :startDate AND :endDate) as advanceReceived
+            (SELECT SUM(totalCost) FROM repairs_table WHERE dateAdded BETWEEN :startDate AND :endDate) as estimatedRevenue,
+            (SELECT SUM(advanceTaken) FROM repairs_table WHERE status != 'Out' AND dateAdded BETWEEN :startDate AND :endDate) as advanceFromPending,
+            (SELECT SUM(totalCost) FROM repairs_table WHERE status = 'Out' AND dateCompleted BETWEEN :startDate AND :endDate) as revenueFromOut,
+            (SELECT SUM(totalCost - advanceTaken) FROM repairs_table WHERE status != 'Out' AND dateAdded BETWEEN :startDate AND :endDate) as upcomingRevenue
     """)
     fun getStats(startDate: Long, endDate: Long): Flow<DashboardStats?>
+    // --- END OF NEW QUERY ---
 
     @Query("SELECT COUNT(*) FROM repairs_table WHERE status = 'Pending'")
     fun getPendingCount(): Flow<Int>

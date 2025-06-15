@@ -66,7 +66,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
-            tools:text="Date Added: 14 June 2025" />
+            tools:text="Date Added: 15 June 2025" />
 
         <View
             android:layout_width="match_parent"
@@ -74,8 +74,8 @@
             android:layout_marginVertical="16dp"
             android:background="?android:attr/listDivider" />
 
-        <!-- MODIFIED: Changed TextViews to EditTexts -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutTotalCost"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/total_cost_hint">
@@ -87,6 +87,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutAdvanceTaken"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"

@@ -1,6 +1,7 @@
 package com.example.mobilerepairshop
 
 import android.Manifest
+import android.app.DatePickerDialog
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -18,6 +19,7 @@ import com.example.mobilerepairshop.ui.viewmodel.RepairViewModel
 import com.example.mobilerepairshop.ui.viewmodel.RepairViewModelFactory
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -27,7 +29,9 @@ class AddRepairActivity : AppCompatActivity() {
     private var latestTmpUri: Uri? = null
     private var latestImageSavedPath: String? = null
 
-    // Get a reference to the ViewModel
+    // NEW: Variable to hold the selected date's timestamp
+    private var selectedDateTimestamp = System.currentTimeMillis()
+
     private val repairViewModel: RepairViewModel by viewModels {
         RepairViewModelFactory((application as RepairShopApplication).repository)
     }
@@ -38,7 +42,6 @@ class AddRepairActivity : AppCompatActivity() {
                 Glide.with(this)
                     .load(uri)
                     .into(binding.imageViewPhone)
-                // The latestImageSavedPath is already set when the URI is created
             }
         }
     }
@@ -57,6 +60,12 @@ class AddRepairActivity : AppCompatActivity() {
         binding = ActivityAddRepairBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // NEW: Set initial date text and setup date picker button
+        updateDateText()
+        binding.buttonSelectDate.setOnClickListener {
+            showDatePicker()
+        }
+
         binding.buttonCapturePhoto.setOnClickListener {
             checkCameraPermissionAndLaunch()
         }
@@ -66,33 +75,44 @@ class AddRepairActivity : AppCompatActivity() {
         }
     }
 
+    // NEW: Function to show the DatePickerDialog
+    private fun showDatePicker() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
+            val selectedCalendar = Calendar.getInstance()
+            selectedCalendar.set(selectedYear, selectedMonth, selectedDay)
+            selectedDateTimestamp = selectedCalendar.timeInMillis
+            updateDateText()
+        }, year, month, day).show()
+    }
+
+    // NEW: Function to format and display the selected date
+    private fun updateDateText() {
+        val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
+        binding.textSelectedDate.text = "Date: ${sdf.format(Date(selectedDateTimestamp))}"
+    }
+
     private fun saveRepair() {
-        // Get text from EditTexts
         val customerName = binding.editTextCustomerName.text.toString().trim()
         val customerContact = binding.editTextCustomerContact.text.toString().trim()
+        // ... (rest of the data collection is the same)
         val alternateContact = binding.editTextAlternateContact.text.toString().trim()
         val imei = binding.editTextImei.text.toString().trim()
         val totalCostText = binding.editTextTotalCost.text.toString().trim()
         val advanceTakenText = binding.editTextAdvanceTaken.text.toString().trim()
 
-        // --- Validation ---
-        if (customerName.isEmpty()) {
-            Toast.makeText(this, "Please enter customer name", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (customerContact.isEmpty()) {
-            Toast.makeText(this, "Please enter customer contact", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (totalCostText.isEmpty()) {
-            Toast.makeText(this, "Please enter total cost", Toast.LENGTH_SHORT).show()
+        if (customerName.isEmpty() || customerContact.isEmpty() || totalCostText.isEmpty()) {
+            Toast.makeText(this, "Customer Name, Contact, and Total Cost are required.", Toast.LENGTH_SHORT).show()
             return
         }
 
         val totalCost = totalCostText.toDoubleOrNull() ?: 0.0
         val advanceTaken = advanceTakenText.toDoubleOrNull() ?: 0.0
 
-        // Create a Repair object with the collected data
         val newRepair = Repair(
             customerName = customerName,
             customerContact = customerContact,
@@ -101,18 +121,18 @@ class AddRepairActivity : AppCompatActivity() {
             imagePath = latestImageSavedPath,
             totalCost = totalCost,
             advanceTaken = advanceTaken,
-            status = getString(R.string.status_in), // Default status is "In"
-            dateAdded = System.currentTimeMillis(), // Current time as a timestamp
+            status = getString(R.string.status_in),
+            // MODIFIED: Use the selected timestamp instead of the current time
+            dateAdded = selectedDateTimestamp,
             dateCompleted = null
         )
 
-        // Use the ViewModel to insert the new repair into the database
         repairViewModel.insert(newRepair)
-
         Toast.makeText(this, "Repair saved successfully!", Toast.LENGTH_LONG).show()
-        finish() // Close the activity and go back to the dashboard
+        finish()
     }
 
+    // --- (The camera functions below this line remain unchanged) ---
     private fun checkCameraPermissionAndLaunch() {
         when {
             ContextCompat.checkSelfPermission(
