@@ -5,9 +5,12 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import com.bumptech.glide.Glide
@@ -27,13 +30,19 @@ class RepairDetailActivity : AppCompatActivity() {
     private val repairViewModel: RepairViewModel by viewModels {
         RepairViewModelFactory((application as RepairShopApplication).repository)
     }
-    // Flag to prevent loops in TextWatcher
     private var isUpdating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRepairDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // --- NEW: Tell the activity to use our new toolbar ---
+        setSupportActionBar(binding.toolbar)
+        // --- END OF NEW LINE ---
+
+        // Add a back arrow to the toolbar
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val repairId = intent.getLongExtra(REPAIR_ID, -1L)
         if (repairId == -1L) {
@@ -63,12 +72,51 @@ class RepairDetailActivity : AppCompatActivity() {
         }
     }
 
+    // --- NEW: Inflate the menu with the delete icon ---
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.detail_menu, menu)
+        return true
+    }
+
+    // --- NEW: Handle menu item clicks ---
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_delete -> {
+                showDeleteConfirmationDialog()
+                true
+            }
+            // Handle the back arrow click
+            android.R.id.home -> {
+                onBackPressedDispatcher.onBackPressed()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    // --- NEW: Function to show confirmation dialog ---
+    private fun showDeleteConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Delete Repair")
+            .setMessage("Are you sure you want to delete this entry? This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                // User clicked the "Delete" button, so delete the repair.
+                currentRepair?.let {
+                    repairViewModel.delete(it)
+                    Toast.makeText(this, "Repair deleted successfully", Toast.LENGTH_SHORT).show()
+                    finish() // Close the activity and go back to the dashboard
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .setIcon(R.drawable.ic_baseline_delete_24)
+            .show()
+    }
+
+
     private fun bindDataToViews(repair: Repair) {
         binding.detailTitle.text = getString(R.string.detail_title_format, repair.id)
         binding.detailCustomerName.text = getString(R.string.customer_name_format, repair.customerName)
         binding.detailCustomerContact.text = getString(R.string.contact_format, repair.customerContact)
-
-        // FIX: Use default value if optional fields are null
         val notApplicable = getString(R.string.not_applicable)
         binding.detailAlternateContact.text = getString(R.string.alt_contact_format, repair.alternateContact ?: notApplicable)
         binding.detailImei.text = getString(R.string.imei_format, repair.imeiNumber ?: notApplicable)
@@ -82,14 +130,10 @@ class RepairDetailActivity : AppCompatActivity() {
 
         binding.detailTotalCost.setText(repair.totalCost.toString())
         binding.detailAdvanceTaken.setText(repair.advanceTaken.toString())
-        validateAndCalculate() // Initial calculation
-
-        val statusArray = resources.getStringArray(R.array.status_array)
-        val statusPosition = statusArray.indexOf(repair.status)
-        if (statusPosition >= 0) {
-            binding.spinnerStatus.setSelection(statusPosition)
-        }
+        validateAndCalculate()
     }
+
+    // ... (The rest of the file remains the same)
 
     private fun setupTextChangedListeners() {
         val textWatcher = object : TextWatcher {
@@ -115,7 +159,6 @@ class RepairDetailActivity : AppCompatActivity() {
             advanceTaken = totalCost
             binding.layoutAdvanceTaken.error = getString(R.string.advance_error)
             binding.detailAdvanceTaken.setText(advanceTaken.toString())
-            // FIX: Safely set the cursor position
             binding.detailAdvanceTaken.text?.let { binding.detailAdvanceTaken.setSelection(it.length) }
         } else {
             binding.layoutAdvanceTaken.error = null
@@ -171,7 +214,7 @@ class RepairDetailActivity : AppCompatActivity() {
                 return
             }
 
-            if(repair.status != getString(R.string.status_out)) {
+            if (repair.status != getString(R.string.status_out)) {
                 Toast.makeText(this, "Can only send message for 'Out' status repairs.", Toast.LENGTH_LONG).show()
                 return
             }

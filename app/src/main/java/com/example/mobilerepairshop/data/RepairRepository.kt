@@ -42,4 +42,7 @@ class RepairRepository(private val repairDao: RepairDao) {
     suspend fun update(repair: Repair) {
         repairDao.update(repair)
     }
+    suspend fun delete(repair: Repair) {
+        repairDao.delete(repair)
+    }
 }

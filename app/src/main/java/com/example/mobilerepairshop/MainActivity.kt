@@ -2,7 +2,10 @@ package com.example.mobilerepairshop
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
@@ -36,6 +39,27 @@ class MainActivity : AppCompatActivity() {
         observeData()
 
         updateDashboardForPeriod("Last 7 Days")
+    }
+
+    // --- NEW: Inflate the menu with the refresh icon ---
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    // --- NEW: Handle menu item clicks ---
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_refresh -> {
+                // When refresh is clicked, re-run the dashboard update
+                // using the currently selected period on the button.
+                val currentPeriod = binding.buttonDateFilter.text.toString()
+                updateDashboardForPeriod(currentPeriod)
+                Toast.makeText(this, "Dashboard refreshed", Toast.LENGTH_SHORT).show()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun setupRecyclerView() {
@@ -79,7 +103,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun observeData() {
         observeRepairList(repairViewModel.allRepairs)
-
         repairViewModel.pendingCount.observe(this) { count ->
             binding.statPendingCount.text = count?.toString() ?: "0"
         }
@@ -112,20 +135,14 @@ class MainActivity : AppCompatActivity() {
 
         when (period) {
             "Today" -> {
-                calendar.set(Calendar.HOUR_OF_DAY, 0)
-                calendar.set(Calendar.MINUTE, 0)
-                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0)
             }
             "Yesterday" -> {
                 calendar.add(Calendar.DAY_OF_YEAR, -1)
-                calendar.set(Calendar.HOUR_OF_DAY, 0)
-                calendar.set(Calendar.MINUTE, 0)
-                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0)
                 val endOfYesterday = Calendar.getInstance()
                 endOfYesterday.add(Calendar.DAY_OF_YEAR, -1)
-                endOfYesterday.set(Calendar.HOUR_OF_DAY, 23)
-                endOfYesterday.set(Calendar.MINUTE, 59)
-                endOfYesterday.set(Calendar.SECOND, 59)
+                endOfYesterday.set(Calendar.HOUR_OF_DAY, 23); endOfYesterday.set(Calendar.MINUTE, 59); endOfYesterday.set(Calendar.SECOND, 59)
                 observeStats(calendar.timeInMillis, endOfYesterday.timeInMillis)
                 return
             }
@@ -137,27 +154,21 @@ class MainActivity : AppCompatActivity() {
         observeStats(startDate, endDate)
     }
 
-    // This is just the observeStats function from inside your MainActivity.kt
-// Replace the existing observeStats function with this one.
     private fun observeStats(startDate: Long, endDate: Long) {
         repairViewModel.getStatsForPeriod(startDate, endDate).observe(this) { stats ->
             binding.statInCount.text = stats?.inCount?.toString() ?: "0"
             binding.statOutCount.text = stats?.outCount?.toString() ?: "0"
 
-            // --- THIS IS THE NEW LOGIC FOR CALCULATING AND DISPLAYING REVENUE ---
             val estimatedRevenue = stats?.estimatedRevenue ?: 0.0
             binding.statEstimatedRevenue.text = "₹${"%.2f".format(estimatedRevenue)}"
 
-            // Actual Revenue = (Advance from pending jobs) + (Full cost from completed jobs)
             val advanceFromPending = stats?.advanceFromPending ?: 0.0
             val revenueFromOut = stats?.revenueFromOut ?: 0.0
             val actualRevenue = advanceFromPending + revenueFromOut
             binding.statActualRevenue.text = "₹${"%.2f".format(actualRevenue)}"
 
-            // Upcoming Revenue is the sum of all remaining dues for non-completed jobs
             val upcomingRevenue = stats?.upcomingRevenue ?: 0.0
             binding.statUpcomingRevenue.text = "₹${"%.2f".format(upcomingRevenue)}"
         }
     }
-
 }

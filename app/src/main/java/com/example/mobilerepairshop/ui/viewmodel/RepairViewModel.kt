@@ -35,6 +35,11 @@ class RepairViewModel(private val repository: RepairRepository) : ViewModel() {
         repository.update(repair)
     }
 
+    fun delete(repair: Repair) = viewModelScope.launch {
+        repository.delete(repair)
+    }
+
+
     fun getRepairById(id: Long): LiveData<Repair?> {
         return repository.getRepairById(id).asLiveData()
     }
@@ -46,6 +51,7 @@ class RepairViewModel(private val repository: RepairRepository) : ViewModel() {
     fun getStatsForPeriod(startDate: Long, endDate: Long): LiveData<DashboardStats?> {
         return repository.getStatsForPeriod(startDate, endDate).asLiveData()
     }
+
 }
 
 /**
